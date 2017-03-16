@@ -197,6 +197,225 @@
 		 * String对象扩展————end
 		 */
 
+		/**
+		 * Array对象扩展————start
+		 */
+
+		/** 
+		* each是一个集合迭代函数，它接受一个函数作为参数和一组可选的参数 
+		* 这个迭代函数依次将集合的每一个元素和可选参数用函数进行计算，并将计算得的结果集返回 
+		{%example 
+		<script> 
+		var a = [1,2,3,4].each(function(x){return x > 2 ? x : null}); 
+		var b = [1,2,3,4].each(function(x){return x < 0 ? x : null}); 
+		alert(a); 
+		alert(b); 
+		</script> 
+		%} 
+		* @param {Function} fn 进行迭代判定的函数 
+		* @param more ... 零个或多个可选的用户自定义参数 
+		* @returns {Array} 结果集，如果没有结果，返回空集 
+		*/ 
+		Array.prototype.each = function(fn){
+			fn = fn || Function.K;
+			var a = [];
+			var args = Array.prototype.slice.call(arguments, 1);
+			for(var i = 0; i < this.length; i++){
+				var res = fn.apply(this,[this[i],i].concat(args));
+				if(res != null) a.push(res);
+			}
+			return a;
+		};
+
+		/** 
+		* 得到一个数组是否包含某一元素
+		* @returns {bool} 是否包含
+		*/ 
+		Array.prototype.contains = function(val){
+			var self = this;
+			return self.indexOf(val) > -1;
+		};
+
+		/** 
+		* 得到一个数组不重复的元素集合
+		* 唯一化一个数组
+		* @returns {Array} 由不重复元素构成的数组
+		*/
+		Array.prototype.uniquelize = function(){
+			var ra = new Array();
+			for(var i = 0; i < this.length; i ++){
+				if(!ra.contains(this[i])){
+					ra.push(this[i]);
+				}
+			}
+			return ra;
+		};
+
+		/**
+		* 求两个集合的差集
+		{%example
+		<script>
+		var a = [1,2,3,4];
+		var b = [3,4,5,6];
+		alert(a.minus(b));
+		</script>
+		%}
+		* @param {Array} b 集合B
+		* @returns {Array} 两个集合的差集
+		*/
+		Array.prototype.minus = function(b){
+			var a = this;
+			return a.uniquelize().each(function(o){return b.contains(o) ? null : o});
+		};
+
+		/**
+		* 求两个集合的并集
+		{%example
+		<script>
+		var a = [1,2,3,4];
+		var b = [3,4,5,6];
+		alert(a.union(b));
+		</script>
+		%}
+		* @param {Array} b 集合B
+		* @returns {Array} 两个集合的并集
+		*/
+		Array.prototype.union = function(a, b){
+			var a = this;
+			return a.concat(b).uniquelize();
+		};
+
+		/**
+		* 求两个集合的交集
+		{%example
+		<script>
+		var a = [1,2,3,4];
+		var b = [3,4,5,6];
+		alert(a.intersect(b));
+		</script>
+		%}
+		* @param {Array} b 集合B
+		* @returns {Array} 两个集合的交集
+		*/
+		Array.prototype.intersect = function(b){
+			var a = this;
+			return a.uniquelize().each(function(o){return b.contains(o) ? o : null});
+		};
+
+		/**
+		* 求两个集合的补集
+		{%example
+		<script>
+		var a = [1,2,3,4];
+		var b = [3,4,5,6];
+		alert(a.complement(b));
+		</script>
+		%}
+		* @param {Array} a 集合A
+		* @param {Array} b 集合B
+		* @returns {Array} 两个集合的补集
+		*/
+		Array.prototype.complement = function(b){
+			var a = this;
+			return a.union(b).minus(a.intersect(b));
+		};
+
+		/**
+		 * 随机捕获，从数组中获取指定数量的元素，得出所有组合形式
+		 * 从数组取特定长度的所有组合，可以是多维数组
+		 * @param len 要取的组合的长度，超过数组长度就娶数组的长度
+		 * @returns {Array} 返回二维数组，包含所有组合数组
+		 */
+		Array.prototype.capture = function(len){
+			var self = this,
+				l = self.length;
+			len = l < len? l: len;
+			var strEditions = self;
+			var strOptions = [];
+
+			function GetOptionsByLen(len){
+				for (var i = 0; i < strEditions.length; i++){
+					strOptions = strOptions.concat(GetSubOptions(i, [strEditions[i]], len));
+				}
+			}
+
+			/**
+			 *递归函数，拼接返回值，并将符合条件的返回值存入结果
+			* @param startFrom 起始位置
+			* @param ParentValue   上一级的字符串
+			* @param len   组合长度
+			* @returns {Array} 符合条件的组合数组
+			*/
+			function GetSubOptions(startFrom, ParentValue, len){
+				var strTmpOptions = [];//console.log(ParentValue,ParentValue.length)
+				if(ParentValue.length == len){
+					strTmpOptions.push(ParentValue);
+				}
+				if(ParentValue.length < len){
+					for(var j = startFrom + 1; j < strEditions.length; j++){
+						if(startFrom + 1 < strEditions.length){
+							var a = ParentValue.slice(0);
+							a.push(strEditions[j]);
+							strTmpOptions = strTmpOptions.concat(GetSubOptions(j, a, len));
+						}
+					}
+				}
+				return strTmpOptions;
+			}
+			GetOptionsByLen(len);
+			return strOptions;
+		};
+
+		/**
+		 * 数组元素组合
+		 * 将二维数组的元素进行组合，获取所有组合，存入数组
+		 * 原数组：必须是二维数组
+		 * 返回结果：返回二维数组，元素为所有的组合形式
+		 * 例如： [[1, 2], [3, 4]], 返回结果是：[[1, 3], [1, 4], [2, 3], [3, 4]]
+		 */
+		Array.prototype.combine = function(){
+			var self = this,
+				allZuhe = [];
+			allZuhe = getZuhes([], self.slice(0));
+			return allZuhe;
+
+			/**
+			 * 递归函数，用来获取所有组合
+			 */
+			function getZuhes(r, arr){
+				var a = arr[0],
+					c = a.slice(0);//console.log(r,b, opts);
+				var e = [];
+				if(r.length == 0){
+					r = c;
+					for(var i = 0, len = r.length; i < len; i++){
+						r[i] = [r[i]];
+					}
+				}else{
+					// console.log(r, c);
+					for(var i = 0, len = r.length; i < len; i++){
+						for(var ii = 0, l = c.length; ii < l; ii++){//console.log(r[i])
+							var f = r[i].slice(0);
+							f.push(c[ii]);
+							e.push(f);
+						}
+					}
+					r = e;
+				}
+				arr.splice(0, 1);
+				if(arr.length == 0){
+					return r;
+				}else{
+					return getZuhes(r, arr);
+				}
+			}
+		};
+
+		/**
+		 * Array对象扩展————end
+		 */
+
+
 		return {};
 
 	};
